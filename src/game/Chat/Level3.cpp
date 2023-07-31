@@ -45,6 +45,7 @@
 #include "Skills/SkillExtraItems.h"
 #include "SystemConfig.h"
 #include "Config/Config.h"
+#include "AI/ScriptDevAI/scripts/examples/PzxMgr.h"
 #include "Mails/Mail.h"
 #include "Util/Util.h"
 #include "Entities/ItemEnchantmentMgr.h"
@@ -320,6 +321,7 @@ bool ChatHandler::HandleReloadAllLocalesCommand(char* /*args*/)
 bool ChatHandler::HandleReloadConfigCommand(char* /*args*/)
 {
     sLog.outString("Re-Loading config settings...");
+    sPzxMgr.Reload();
     sWorld.LoadConfigSettings(true);
     sMapMgr.InitializeVisibilityDistanceInfo();
 #ifdef BUILD_METRICS

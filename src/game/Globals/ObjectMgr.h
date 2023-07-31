@@ -455,6 +455,34 @@ struct WorldStateName
     int32 Id;
     std::string Name;
 };
+//pzx init
+struct PlayerPremadeItem
+{
+    PlayerPremadeItem(uint32 item, uint32 enchant, uint32 team) : itemId(item), enchantId(enchant), requiredTeam(team) {};
+    uint32 itemId = 0;
+    uint32 enchantId = 0;
+    uint32 requiredTeam = 0;
+};
+struct PlayerPremadeGearTemplate
+{
+    uint32 entry = 0;
+    uint8 level = 0;
+    uint8 requiredClass = 0;
+    CombatBotRoles role = ROLE_INVALID;
+    std::string name;
+    std::vector<PlayerPremadeItem> items;
+};
+struct PlayerPremadeSpecTemplate
+{
+    uint32 entry = 0;
+    uint8 level = 0;
+    uint8 requiredClass = 0;
+    CombatBotRoles role = ROLE_INVALID;
+    std::string name;
+    std::vector<uint32> spells;
+};
+typedef std::unordered_map<uint32, PlayerPremadeGearTemplate> PlayerPremadeGearMap;
+typedef std::unordered_map<uint32, PlayerPremadeSpecTemplate> PlayerPremadeSpecMap;
 
 class ObjectMgr
 {
@@ -1221,6 +1249,12 @@ class ObjectMgr
 
         bool HasWorldStateName(int32 Id) const;
         WorldStateName* GetWorldStateName(int32 Id);
+        //pzx init  add by pengzx
+        void LoadPlayerPremadeTemplates();
+        void ApplyPremadeGearTemplateToPlayer(uint32 entry, Player* pPlayer) const;
+        void ApplyPremadeSpecTemplateToPlayer(uint32 entry, Player* pPlayer) const;
+        PlayerPremadeGearMap const& GetPlayerPremadeGearTemplates() const { return m_playerPremadeGearMap; }
+        PlayerPremadeSpecMap const& GetPlayerPremadeSpecTemplates() const { return m_playerPremadeSpecMap; }
     protected:
 
         // current locale settings
@@ -1304,6 +1338,8 @@ class ObjectMgr
         QuestRelationsMap       m_CreatureQuestInvolvedRelations;
         QuestRelationsMap       m_GOQuestRelations;
         QuestRelationsMap       m_GOQuestInvolvedRelations;
+
+
 
     private:
         void LoadCreatureAddons(SQLStorage& creatureaddons, char const* entryName, char const* comment);
@@ -1392,6 +1428,9 @@ class ObjectMgr
         std::unique_ptr<UnitConditionMgr> m_unitConditionMgr;
         std::unique_ptr<WorldStateExpressionMgr> m_worldStateExpressionMgr;
         std::unique_ptr<CombatConditionMgr> m_combatConditionMgr;
+        //pzx init
+        PlayerPremadeGearMap m_playerPremadeGearMap;
+        PlayerPremadeSpecMap m_playerPremadeSpecMap;
 };
 
 #define sObjectMgr MaNGOS::Singleton<ObjectMgr>::Instance()

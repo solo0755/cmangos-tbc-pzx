@@ -20186,6 +20186,129 @@ void Player::AutoUnequipOffhandIfNeed(uint8 bag)
     }
 }
 
+void Player::SatisfyItemRequirements(ItemPrototype const* pItem)
+{
+    if (GetLevel() < pItem->RequiredLevel)
+    {
+        GiveLevel(pItem->RequiredLevel);
+        InitTalentForLevel();
+        SetUInt32Value(PLAYER_XP, 0);
+    }
+
+    // Set required honor rank
+    //auto playerRank = (sWorld.getConfig(CONFIG_BOOL_ACCURATE_PVP_EQUIP_REQUIREMENTS) && sWorld.GetWowPatch() < WOW_PATCH_106) ? m_honorMgr.GetRank().rank : m_honorMgr.GetHighestRank().rank;
+    //if (playerRank < (uint8)pItem->RequiredHonorRank)
+    //{
+    //    HonorRankInfo rank;
+    //    rank.rank = pItem->RequiredHonorRank;
+    //    m_honorMgr.CalculateRankInfo(rank);
+    //    m_honorMgr.SetHighestRank(rank);
+    //    m_honorMgr.SetRank(rank);
+    //}
+
+    // Set required reputation
+    if (pItem->RequiredReputationFaction && pItem->RequiredReputationRank)// modify  by pzx
+        if (FactionEntry const* pFaction = sFactionStore.LookupEntry<FactionEntry>(pItem->RequiredReputationFaction))
+            if (GetReputationMgr().GetRank(pFaction) < pItem->RequiredReputationRank)
+                GetReputationMgr().SetReputation(pFaction, ReputationMgr::PointsInRank[pItem->RequiredReputationRank]);
+
+    // Learn required spell
+    if (pItem->RequiredSpell && !HasSpell(pItem->RequiredSpell))
+        learnSpell(pItem->RequiredSpell, false, false);
+
+    // Learn required profession
+    if (pItem->RequiredSkill && (!HasSkill(pItem->RequiredSkill) || (GetSkill(pItem->RequiredSkill, false, false) < pItem->RequiredSkillRank)))
+        SetSkill(pItem->RequiredSkill, pItem->RequiredSkillRank, 300);
+
+    // Learn Dual Wield Specialization
+    if (pItem->InventoryType == INVTYPE_WEAPONOFFHAND && !HasSpell(674))
+        learnSpell(674, false, false);
+
+
+    int learnSkill = 0;
+    switch (pItem->Class)
+    {
+    case ITEM_CLASS_WEAPON:
+        switch (pItem->SubClass)
+        {
+        case ITEM_SUBCLASS_WEAPON_AXE:     learnSkill = 196; break;
+        case ITEM_SUBCLASS_WEAPON_AXE2:    learnSkill = 197; break;
+        case ITEM_SUBCLASS_WEAPON_BOW:     learnSkill = 264; break;
+        case ITEM_SUBCLASS_WEAPON_GUN:     learnSkill = 266; break;
+        case ITEM_SUBCLASS_WEAPON_MACE:    learnSkill = 198; break;
+        case ITEM_SUBCLASS_WEAPON_MACE2:   learnSkill = 199; break;
+        case ITEM_SUBCLASS_WEAPON_POLEARM: learnSkill = 200; break;
+        case ITEM_SUBCLASS_WEAPON_SWORD:   learnSkill = 201; break;
+        case ITEM_SUBCLASS_WEAPON_SWORD2:  learnSkill = 202; break;
+        case ITEM_SUBCLASS_WEAPON_STAFF:   learnSkill = 227; break;
+        case ITEM_SUBCLASS_WEAPON_DAGGER:  learnSkill = 1180; break;
+        case ITEM_SUBCLASS_WEAPON_THROWN:  learnSkill = 2567; break;
+        case ITEM_SUBCLASS_WEAPON_SPEAR:   learnSkill = 3386; break;
+        case ITEM_SUBCLASS_WEAPON_CROSSBOW: learnSkill = 5011; break;
+        case ITEM_SUBCLASS_WEAPON_WAND:    learnSkill = 5009; break;
+        default: learnSkill = 0; break;
+        }break;
+    case ITEM_CLASS_ARMOR:
+        switch (pItem->SubClass)
+        {
+        case ITEM_SUBCLASS_ARMOR_CLOTH:    learnSkill = 9078; break;
+        case ITEM_SUBCLASS_ARMOR_LEATHER:  learnSkill = 9077; break;
+        case ITEM_SUBCLASS_ARMOR_MAIL:     learnSkill = 8737; break;
+        case ITEM_SUBCLASS_ARMOR_PLATE:    learnSkill = 750; break;
+        case ITEM_SUBCLASS_ARMOR_SHIELD:   learnSkill = 9116; break;
+        default: learnSkill = 0; break;
+        }break;
+    }
+        if (learnSkill>0&&!HasSpell(learnSkill))
+            learnSpell(learnSkill, false, false);
+    // Learn required proficiency
+    //if (uint32 proficiencySpellId = pItem.)
+    //    if (!HasSpell(proficiencySpellId))
+    //        learnSpell(proficiencySpellId, false, false);
+}
+
+void Player::AutoUnequipWeaponsIfNeed()//pzx init
+{
+    if (Item* pMainHandWeapon = GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_MAINHAND))
+        if (CanUseItem(pMainHandWeapon, false) != EQUIP_ERR_OK)
+            AutoUnequipItemFromSlot(EQUIPMENT_SLOT_MAINHAND);
+
+    if (Item* pOffHandWeapon = GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_OFFHAND))
+        if (CanUseItem(pOffHandWeapon, false) != EQUIP_ERR_OK)
+            AutoUnequipItemFromSlot(EQUIPMENT_SLOT_OFFHAND);
+
+    if (Item* pOffHandWeapon = GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_RANGED))
+        if (CanUseItem(pOffHandWeapon, false) != EQUIP_ERR_OK)
+            AutoUnequipItemFromSlot(EQUIPMENT_SLOT_RANGED);
+}
+
+void Player::AutoUnequipItemFromSlot(uint32 slot)//pzx init
+{
+    Item* pItem = GetItemByPos(INVENTORY_SLOT_BAG_0, slot);
+    if (!pItem)
+        return;
+
+    ItemPosCountVec itemDestination;
+    uint8 main_msg = CanStoreItem(NULL_BAG, NULL_SLOT, itemDestination, pItem, false);
+    if (main_msg == EQUIP_ERR_OK)
+    {
+        RemoveItem(INVENTORY_SLOT_BAG_0, slot, true);
+        StoreItem(itemDestination, pItem, true);
+    }
+    else
+    {
+        MoveItemFromInventory(INVENTORY_SLOT_BAG_0, slot, true);
+        CharacterDatabase.BeginTransaction();
+        pItem->DeleteFromInventoryDB();                   // deletes item from character's inventory
+        pItem->SaveToDB();                                // recursive and not have transaction guard into self, item not in inventory and can be save standalone
+        CharacterDatabase.CommitTransaction();
+
+        std::string subject = GetSession()->GetMangosString(LANG_NOT_EQUIPPED_ITEM);
+        MailDraft(subject).AddItem(pItem).SendMailTo(this, MailSender(this, MAIL_STATIONERY_GM), MAIL_CHECK_MASK_COPIED);
+    }
+}
+
+
 bool Player::HasItemFitToSpellReqirements(SpellEntry const* spellInfo, Item const* ignoreItem, uint32* error) const
 {
     if (spellInfo->EquippedItemClass < 0)

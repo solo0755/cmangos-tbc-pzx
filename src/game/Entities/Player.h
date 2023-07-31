@@ -1188,6 +1188,9 @@ class Player : public Unit
         Item* EquipNewItem(uint16 pos, uint32 item, bool update);
         Item* EquipItem(uint16 pos, Item* pItem, bool update);
         void AutoUnequipOffhandIfNeed(uint8 bag = NULL_BAG);
+        void SatisfyItemRequirements(ItemPrototype const* pItem); //pzx init
+        void AutoUnequipWeaponsIfNeed(); //pzx init
+        void AutoUnequipItemFromSlot(uint32 slot); //pzx init
         bool StoreNewItemInBestSlots(uint32 titem_id, uint32 titem_amount);
         Item* StoreNewItemInInventorySlot(uint32 itemEntry, uint32 amount);
 

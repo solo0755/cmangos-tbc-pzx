@@ -1300,6 +1300,9 @@ void World::SetInitialWorldSettings()
     sLog.outString("Returning old mails...");
     sObjectMgr.ReturnOrDeleteOldMails(false);
 
+    //pzx init  load pzx coding
+    sObjectMgr.LoadPlayerPremadeTemplates();
+
     sLog.outString("Loading GM tickets...");
     sTicketMgr.LoadGMTickets();
 

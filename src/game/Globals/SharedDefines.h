@@ -20,6 +20,15 @@
 #define MANGOS_SHAREDDEFINES_H
 
 #include "Platform/Define.h"
+//pzx init
+enum CombatBotRoles
+{
+    ROLE_INVALID,
+    ROLE_MELEE_DPS,
+    ROLE_RANGE_DPS,
+    ROLE_TANK,
+    ROLE_HEALER,
+};
 
 enum Gender
 {

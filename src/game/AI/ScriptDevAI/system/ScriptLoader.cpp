@@ -10,6 +10,7 @@ extern void AddSC_battleground();
 // custom
 
 // examples
+extern void AddSC_custom_creatures_pzx();
 extern void AddSC_example_creature();
 extern void AddSC_example_escort();
 extern void AddSC_example_gossip_codebox();
@@ -373,6 +374,7 @@ void AddScripts()
     // custom
 
     // examples
+    AddSC_custom_creatures_pzx();
     AddSC_example_creature();
     AddSC_example_escort();
     AddSC_example_gossip_codebox();
