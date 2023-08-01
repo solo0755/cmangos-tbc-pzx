@@ -192,7 +192,7 @@ bool PzxMgr::isTimeOut(uint32 guid, uint32 type) {
 		std::map<uint32, uint64>::const_iterator timeIT = v.find(type);
 		if (timeIT != v.end()) {
 			MenuTree getTree = getTreeByID(type);
-			return sizeof(getTree) > 1 ? time(nullptr) > (getTree.itemid + timeIT->second) : true;
+			return sizeof(getTree) > 1 ? time(nullptr) > (/**getTree.itemid + **/timeIT->second) : true;
 		}
 		else
 			return true;
@@ -395,19 +395,18 @@ CharaMenuMap PzxMgr::loadAllMenu(uint32 pid)
 		std::string name = fields[2].GetString();
 		uint32 unionID = fields[3].GetUInt32();
 		uint32 needval = fields[4].GetUInt32();
-		uint32 type = fields[5].GetUInt32();
-		uint32 raceMask = fields[6].GetUInt32();
-		uint32 itemid = fields[7].GetUInt32();
-		uint32 itemNum = fields[8].GetUInt32();
-		std::string telexyz = fields[9].GetString();
-		//uint32 spellid = fields[10].GetUInt32();
-		//uint32 time_length = fields[11].GetUInt32();
-		uint32 unioncheck = fields[10].GetUInt32();
-		uint32 popMenu = fields[11].GetUInt32();
-		uint32 iconID = fields[12].GetUInt32();
-		//menu分层
+		uint32 raceMask = fields[5].GetUInt32();
+		uint32 type = fields[6].GetUInt32();
+		std::string param1 = fields[7].GetString();
+		std::string param2 = fields[8].GetString();
+		std::string param3 = fields[9].GetString();
+		std::string param4 = fields[10].GetString();
+		std::string param5 = fields[11].GetString();
+		uint32 unioncheck = fields[12].GetUInt32();
+		uint32 popMenu = fields[13].GetUInt32();
+		uint32 iconID = fields[14].GetUInt32();
 		//1.先找出pid为0的菜单项目
-		MenuTree pt = { id, pid, name,unionID,needval,type,raceMask,itemid ,itemNum,telexyz ,unioncheck,popMenu,iconID,loadAllMenu(id) };
+		MenuTree pt = { id, pid, name,unionID,needval,raceMask,type,param1 ,param2,param3,param4,param5,unioncheck,popMenu,iconID,loadAllMenu(id) };
 		//sLog.outString("loadAllMenu4");
 		std::pair<uint32, MenuTree> menu(id, pt);
 		menuMap.insert(menu);

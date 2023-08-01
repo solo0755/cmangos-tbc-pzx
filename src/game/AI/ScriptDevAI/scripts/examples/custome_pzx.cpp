@@ -48,7 +48,6 @@ bool GossipSelect_Pzx(Player* player, Creature* _Creature, uint32 sender, uint32
         if(action ==99)
             GossipHello_Pzx(player, _Creature);
         return false;
-       
     }
     CharaMenuMap::const_iterator got = allmap.find(action);
     if (got != allmap.end()) {
@@ -93,7 +92,13 @@ bool GossipSelect_Pzx(Player* player, Creature* _Creature, uint32 sender, uint32
             }
             case T_TEL_TO_XYZ:
             {
-                teleToPoint(player, getTree.xyz, getTree.needval);
+                teleToPoint(player, getTree.param1, getTree.needval);
+                player->CLOSE_GOSSIP_MENU();
+                break;
+            }
+            case T_ITEM_ENCHAT:
+            {
+                teleToPoint(player, getTree.param1, getTree.needval);
                 player->CLOSE_GOSSIP_MENU();
                 break;
             }

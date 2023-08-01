@@ -10,15 +10,15 @@ struct MenuTree
 	uint32 id;
 	uint32 pid;
 	std::string name;
-	uint32 unionID;//互斥编号
+	uint32 unionID;//同级互斥编号
 	uint32 needval;
-	uint32 type; //菜单类型：0菜单,1开关节点，2购买物品，3增加时长，4学习技能,5传送地点
 	uint32 racemask;//种族掩码
-	uint32 itemid;//物品ID
-	uint32 item_count;//物品数量
-	std::string   xyz; //坐标位置
-	//uint32 spellid; //技能ID
-	//uint32 timeLength; //时长
+	uint32 type; //菜单类型
+	std::string param1;
+	std::string param2;
+	std::string param3;
+	std::string param4;
+	std::string param5;
 	uint32 unioncheck; //互斥开关
 	uint32 popMenu; //是否是弹出框
 	uint32 iconID; //是否是弹出框
