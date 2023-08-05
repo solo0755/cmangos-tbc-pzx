@@ -381,7 +381,7 @@ CharaMenuMap PzxMgr::loadAllMenu(uint32 pid)
 		bar.step();
 
 		sLog.outString();
-		sLog.outString(">> Loaded p-menu:%u empty ",pid);
+		sLog.outString(">> Loaded p-menu:%u empty ", pid);
 		return{};
 	}
 	BarGoLink bar(result->GetRowCount());
@@ -389,33 +389,111 @@ CharaMenuMap PzxMgr::loadAllMenu(uint32 pid)
 	do
 	{
 		bar.step();
+		MenuTree pt;
 		Field* fields = result->Fetch();
-		uint32 id = fields[0].GetUInt32();
-		uint32 pid = fields[1].GetUInt32();
-		std::string name = fields[2].GetString();
-		uint32 unionID = fields[3].GetUInt32();
-		uint32 needval = fields[4].GetUInt32();
-		uint32 raceMask = fields[5].GetUInt32();
+		pt.id = fields[0].GetUInt32();
+		pt.pid = fields[1].GetUInt32();
+		pt.name = fields[2].GetString();
+		pt.unionID = fields[3].GetUInt32();
+		pt.needval = fields[4].GetUInt32();
+		pt.racemask = fields[5].GetUInt32();
 		uint32 type = fields[6].GetUInt32();
-		std::string param1 = fields[7].GetString();
-		std::string param2 = fields[8].GetString();
-		std::string param3 = fields[9].GetString();
-		std::string param4 = fields[10].GetString();
-		std::string param5 = fields[11].GetString();
-		uint32 unioncheck = fields[12].GetUInt32();
-		uint32 popMenu = fields[13].GetUInt32();
-		uint32 iconID = fields[14].GetUInt32();
+		pt.type = type;
+		string param1 = fields[7].GetString();
+		string param2 = fields[8].GetString();
+		string param3 = fields[9].GetString();
+		string param4 = fields[10].GetString();
+		string param5 = fields[11].GetString();
+		try
+		{
+
+	
+		switch (type)
+		{
+		case T_TEL_TO_XYZ:
+			m_Tele_xyzm m_tele;
+			m_tele.x = stof(param1);
+			m_tele.y = stof(param2);
+			m_tele.z = stof(param3);
+			m_tele.mapid = stof(param4);
+			pt.m_tele_xyzm = m_tele;
+			break;
+		case T_BUY_TIME:
+		{
+			m_BuyItem m_buyItem;
+			m_buyItem.itemID = stod(param1);
+			if (param2.empty()) {
+				m_buyItem.itemNum = 1;
+			}
+			else {
+				m_buyItem.itemNum = stod(param2);
+			}
+			pt.m_buyItem = m_buyItem;
+		}
+		case T_LEARN_SKILL:
+		{
+			m_Skill m_skill;
+			m_skill.learnSkill = static_cast<SkillType>(stod(param1));
+			pt.m_skill = m_skill;
+		}
+		break;
+		case T_LEARN_SPELL:
+		{
+			m_Spell m_spell;
+			m_spell.learnSpell = stod(param1);
+			pt.m_spell = m_spell;
+		}
+		break;
+		case T_ITEM_ENCHANT:
+		{
+			m_Enchant m_enchant;
+			m_enchant.itemSlot = static_cast<EquipmentSlots>(stod(param1));
+			m_enchant.enchatSpell = stod(param2);
+			m_enchant.hasSubclass = false;
+			if (!param3.empty()) {
+
+				vector<string> result;
+
+				split(result, param3, boost::is_any_of(","));
+				vector<uint32> subclasses;
+				for (const std::string& str : result) {
+					subclasses.push_back(stod(str));
+				}
+				m_enchant.subclass = subclasses;
+				m_enchant.hasSubclass = true;
+			}
+
+			pt.m_enchant = m_enchant;
+		}break;
+
+		default:
+			break;
+		}
+		}
+		catch (const std::exception& e)
+		{
+			//这条记录有问题，不加载
+			sLog.outError(">> Loaded menu-id:%u exception,%s",pt.id,e.what());
+			continue;
+
+		}
+		pt.unioncheck = fields[12].GetUInt32();
+
+		pt.popMenu = fields[13].GetUInt32();
+		pt.iconID = fields[14].GetUInt32();
+		pt.children = loadAllMenu(pt.id);
 		//1.先找出pid为0的菜单项目
-		MenuTree pt = { id, pid, name,unionID,needval,raceMask,type,param1 ,param2,param3,param4,param5,unioncheck,popMenu,iconID,loadAllMenu(id) };
+
+		//MenuTree pt = { id, pid, name,unionID,needval,raceMask,type,unioncheck,popMenu,iconID,loadAllMenu(id) };
 		//sLog.outString("loadAllMenu4");
-		std::pair<uint32, MenuTree> menu(id, pt);
+		pair<uint32, MenuTree> menu(pt.id, pt);
 		menuMap.insert(menu);
 		allMenu.insert(menu);
 		++count;
 	} while (result->NextRow());
 	delete result;
 	sLog.outString();
-	sLog.outString(">> Loaded menu:%u ,size:%u", pid,count);
+	sLog.outString(">> Loaded menu:%u ,size:%u", pid, count);
 
 	return menuMap;
 

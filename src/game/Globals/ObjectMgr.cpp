@@ -10495,7 +10495,7 @@ void ObjectMgr::ApplyPremadeGearTemplateToPlayer(uint32 entry, Player* pPlayer) 
     for (int i = EQUIPMENT_SLOT_START; i < EQUIPMENT_SLOT_END; ++i)
         pPlayer->AutoUnequipItemFromSlot(i);
 
-    // Learn Dual Wield Specialization
+    // Learn Dual Wield Specialization//Ë«ÎäÆ÷¼¼ÄÜ
     if (pPlayer->getClass() == CLASS_WARRIOR || pPlayer->getClass() == CLASS_ROGUE || pPlayer->getClass() == CLASS_HUNTER)
         if (!pPlayer->HasSpell(674))
             pPlayer->learnSpell(674, false, false);
@@ -10505,10 +10505,10 @@ void ObjectMgr::ApplyPremadeGearTemplateToPlayer(uint32 entry, Player* pPlayer) 
         if (!item.requiredTeam || (pPlayer->GetTeam() == item.requiredTeam))
         {
             ItemPrototype const* pItem = GetItemPrototype(item.itemId);
-            if (!pPlayer->HasItemCount(item.itemId, 1, true)) {//pzx modify
+            //if (!pPlayer->HasItemCount(item.itemId, 1, true)) {//pzx modify
                 pPlayer->SatisfyItemRequirements(pItem);
                 pPlayer->StoreNewItemInBestSlots(item.itemId, 1);
-            }
+            //}
         }
     }
 }

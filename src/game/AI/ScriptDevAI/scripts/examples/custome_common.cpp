@@ -1,105 +1,140 @@
-#include <ctime>
-#include <string> 
-#include <codecvt>
-#include <regex>
-#include "AI/ScriptDevAI/include/sc_common.h"
+
+#include "custome_common.h"
+using namespace std;
 
 
-void SkipWhiteSpaces(char** args)
+void pzx_Enchant(Player* player, Item* item, uint32 enchantid)
 {
-	if (!*args)
-		return;
-
-	while (isWhiteSpace(**args))
-		++(*args);
-}
-bool  ExtractUInt32Base(char** args, uint32& val, uint32 base)
-{
-	if (!*args || !**args)
-		return false;
-
-	char* tail = *args;
-
-	unsigned long valRaw = strtoul(*args, &tail, base);
-
-	if (tail != *args && isWhiteSpace(*tail))
-		*(tail++) = '\0';
-	else if (tail && *tail)                                 // some not whitespace symbol
-		return false;                                       // args not modified and can be re-parsed
-
-	if (valRaw > std::numeric_limits<uint32>::max())
-		return false;
-
-	// value successfully extracted
-	val = uint32(valRaw);
-	*args = tail;
-
-	SkipWhiteSpaces(args);
-	return true;
-}
-bool  ExtractUInt32(char** args, uint32& val) { return ExtractUInt32Base(args, val, 10); }
-bool  ExtractOptUInt32(char** args, uint32& val, uint32 defVal)
-{
-	if (!*args || !**args)
+	if (!item)
 	{
-		val = defVal;
-		return true;
+		player->GetSession()->SendNotification("You must first equip the item you are trying to enchant.");
+		return;
 	}
 
-	return ExtractUInt32(args, val);
+	if (!enchantid)
+	{
+		player->GetSession()->SendNotification("Something went wrong.");
+		return;
+	}
+
+	item->ClearEnchantment(PERM_ENCHANTMENT_SLOT);
+	item->SetEnchantment(PERM_ENCHANTMENT_SLOT, enchantid, 0, 0);
+	player->GetSession()->SendNotification("%s succesfully enchanted", item->GetProto()->Name1);
 }
 
-bool  ExtractFloat(char** args, float& val)
+
+
+void pzx_LearnSkillRecipesHelper(Player* player, uint32 skill_id)
 {
-	if (!*args || !**args)
+	uint32 classmask = player->getClassMask();
+
+	for (uint32 j = 0; j < sSkillLineAbilityStore.GetNumRows(); ++j)
+	{
+		SkillLineAbilityEntry const* skillLine = sSkillLineAbilityStore.LookupEntry(j);
+		if (!skillLine)
+			continue;
+
+		// wrong skill
+		if (skillLine->skillId != skill_id)
+			continue;
+
+		// not high rank
+		if (skillLine->forward_spellid)
+			continue;
+
+		// skip racial skills
+		if (skillLine->racemask != 0)
+			continue;
+
+		// skip wrong class skills
+		if (skillLine->classmask && (skillLine->classmask & classmask) == 0)
+			continue;
+
+		SpellEntry const* spellInfo = sSpellTemplate.LookupEntry<SpellEntry>(skillLine->spellId);
+		if (!spellInfo || !SpellMgr::IsSpellValid(spellInfo, player, false))
+			continue;
+
+		player->learnSpell(skillLine->spellId, false);
+	}
+}
+
+bool pzx_LearnAllRecipesInProfession(Player* pPlayer, SkillType skill)
+{
+	ChatHandler handler(pPlayer->GetSession());
+	char* skill_name;
+
+	SkillLineEntry const* SkillInfo = sSkillLineStore.LookupEntry(skill);
+	skill_name = SkillInfo->name[sWorld.GetDefaultDbcLocale()];
+
+	if (!SkillInfo)
+	{
+		sLog.outError("Profession NPC: received non-valid skill ID");
 		return false;
+	}
 
-	char* tail = *args;
-
-	double valRaw = strtod(*args, &tail);
-
-	if (tail != *args && isWhiteSpace(*tail))
-		*(tail++) = '\0';
-	else if (tail && *tail)                                 // some not whitespace symbol
-		return false;                                       // args not modified and can be re-parsed
-
-															// value successfully extracted
-	val = float(valRaw);
-	*args = tail;
-
-	SkipWhiteSpaces(args);
+	pPlayer->SetSkill(SkillInfo->id, 375, 375);
+	pzx_LearnSkillRecipesHelper(pPlayer, SkillInfo->id);
+	pPlayer->GetSession()->SendNotification("All recipes for %s learned", skill_name);
 	return true;
 }
 
 
-bool teleToPoint(Player* player, std::string xyz, uint32 needval) {
-	uint32 accID = player->GetSession()->GetAccountId();
 
-	const char* _args = xyz.c_str();
-	char* args = const_cast<char*>(_args);
-	sLog.outString(u8">> [PZX] xyzzzzzz=%s", args);
-	float x;
-	if (!ExtractFloat(&args, x)) {
-		sLog.outString(u8">> [PZX] xyz1=%s", args);
-		return false;
+void pzx_CompleteLearnProfession(Player* pPlayer, Creature* pCreature, SkillType skill)
+{
+	if (pPlayer->GetFreePrimaryProfessionPoints() == 0 && !(skill == SKILL_COOKING || skill == SKILL_FIRST_AID))
+	{
+		pPlayer->GetSession()->SendNotification("You already know two primary professions.");
+	}
+	else
+	{
+		if (!pzx_LearnAllRecipesInProfession(pPlayer, skill))
+			pPlayer->GetSession()->SendNotification("Internal error.");
+	}
+}
+
+#define SPELL_LIGHTNING_VISUAL 24240
+
+bool GossipHello_PremadeGearNPC(Player* player, Creature* creature, int pzx_sender)
+{
+	for (auto itr : sObjectMgr.GetPlayerPremadeGearTemplates())
+	{
+		if (itr.second.requiredClass == player->getClass())
+		{
+			player->ADD_GOSSIP_ITEM(GOSSIP_ICON_INTERACT_2, itr.second.name.c_str(), pzx_sender, itr.first);
+		}
 	}
 
-	float y;
-	if (!ExtractFloat(&args, y)) {
-		sLog.outString(u8">> [PZX] xyz2=%s", args);
-		return false;
+	player->SEND_GOSSIP_MENU(player->GetGossipTextId(creature), creature->GetObjectGuid());
+	return true;
+}
+
+bool GossipSelect_PremadeGearNPC(Player* player, Creature* creature, uint32 sender, uint32 action)
+{
+	player->PlaySpellVisual(SPELL_LIGHTNING_VISUAL);
+	sObjectMgr.ApplyPremadeGearTemplateToPlayer(action, player);
+	player->CLOSE_GOSSIP_MENU();
+	return true;
+}
+
+bool GossipHello_PremadeSpecNPC(Player* player, Creature* creature, int pzx_sender)
+{
+	for (auto itr : sObjectMgr.GetPlayerPremadeSpecTemplates())
+	{
+		if (itr.second.requiredClass == player->getClass())
+		{
+			player->ADD_GOSSIP_ITEM(GOSSIP_ICON_INTERACT_2, itr.second.name.c_str(), pzx_sender, itr.first);
+		}
 	}
 
-	float z;
-	if (!ExtractFloat(&args, z)) {
-		sLog.outString(u8">> [PZX] xyz3=%s", args);
-		return false;
-	}
+	player->SEND_GOSSIP_MENU(player->GetGossipTextId(creature), creature->GetObjectGuid());
+	return true;
+}
 
-	uint32 mapid;
-	if (!ExtractOptUInt32(&args, mapid, player->GetMapId())) {
-		sLog.outString(u8">> [PZX] xyz4=%s", args);
-		return false;
-	}
-	return player->TeleportTo(mapid, x, y, z, 0.0f);
+bool GossipSelect_PremadeSpecNPC(Player* player, Creature* creature, uint32 sender, uint32 action)
+{
+	player->PlaySpellVisual(SPELL_LIGHTNING_VISUAL);
+	sObjectMgr.ApplyPremadeSpecTemplateToPlayer(action, player);
+	player->CLOSE_GOSSIP_MENU();
+	return true;
 }
